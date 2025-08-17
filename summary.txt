@@ -1,0 +1,51 @@
+Benchmarking gpt-oss with Menu Navigation
+TL;DR
+
+I stress-tested the shiny new gpt-oss model with my GPU, and it survived a 32,000-step memory torture test… barely.
+It took 2.5 minutes per answer and scored about the same as a caffeinated coin flip. But hey, it never panicked or output garbage. That’s something.
+
+Experiment Setup
+
+Benchmark script: gemma-auto.py
+
+Task: Menu navigation game (3 choices, one is correct based on a repeating character sequence)
+
+Parameters:
+
+Steps = 10
+
+Difficulty = 32,000 (yes, I went full sadistic mode)
+
+Hardware: Single GPU, sweating bullets the whole time
+
+Results
+Model=gpt-oss | Steps=10 | Difficulty=32000
+Accuracy = 40.0%   (random baseline ≈ 33%)
+Invalid  = 0
+Avg time = 160,682 ms per query (~2.5 minutes each)
+
+Interpretation
+
+Accuracy: Basically random. At this difficulty, no model I can run locally has the memory to survive.
+
+Discipline: Never broke format, never output invalid junk. Kudos for at least dying with dignity.
+
+Latency: Context handling turned into molasses. The GPU was basically on fire, fans screaming, probably wondering what it did to deserve this.
+
+Lessons Learned
+
+Don’t ask your local GPU to remember 32,000 characters back. It’s cruel.
+
+At small to medium difficulty (≤512), this benchmark is great for comparing reasoning vs memorization.
+
+At extreme difficulty (≥10k), you’re basically testing context length endurance — and gpt-oss ain’t built for ultramarathons.
+
+Final Thoughts
+
+This run taught me two things:
+
+My GPU has the patience of a saint.
+
+gpt-oss is the most powerful open-weight model I can handle right now… but if it were a person, it would be that friend who says “yeah, I totally remember what happened in 1997” and then makes a 40% educated guess.
+
+At least it’s honest.
