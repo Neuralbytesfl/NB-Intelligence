@@ -29,4 +29,3 @@ This repo documents the benchmarks, stress tests, and outright abuse I’ve put 
 - Medium steps (difficulty 32–512): Accuracy starts wobbling, still above random  
 - Large steps (≥1024): Accuracy collapses into coin-flip territory  
 
-### Extreme stress test  
