@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wiki Builder</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg:#0b0d12; --panel:#111723; --muted:#9aa3b2; --fg:#e6edf3;
+      --accent:#7aa2f7; --ok:#34d399; --err:#f87171; --border:#1e2533;
+    }
+    * { box-sizing: border-box; }
+    html, body { height:100%; }
+    body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,Segoe UI,Roboto,Inter,Arial; }
+    a { color:var(--accent); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .wrap { max-width:1200px; margin:0 auto; padding:1rem; }
+    .grid { display:grid; grid-template-columns: 380px 1fr; gap:1rem; align-items:start; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1rem; }
+    h1,h2,h3 { margin:.2rem 0 .6rem; }
+    label { display:block; margin:.35rem 0; color:var(--muted); font-size:.95rem; }
+    input, select, textarea, button {
+      width:100%; padding:.6rem .7rem; border-radius:10px; border:1px solid var(--border);
+      background:#0e1420; color:var(--fg); outline:none;
+    }
+    textarea { min-height:140px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    button { cursor:pointer; background:var(--accent); color:#0b0d12; font-weight:700; border:none; }
+    .btn-row { display:flex; gap:.5rem; align-items:center; }
+    .muted { color:var(--muted); }
+    .bad { color:var(--err); }
+    .ok { color:var(--ok); }
+    .preview { background:#0c111a; border:1px solid var(--border); border-radius:12px; padding:1rem; height:72vh; overflow:auto; }
+    .checkboxes { display:grid; grid-template-columns: 1fr 1fr; gap:.25rem .75rem; margin:.5rem 0; }
+    .checkboxes label { display:flex; gap:.5rem; align-items:center; }
+    .small { font-size:.9rem; }
+    .hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+    .pill { padding:.25rem .5rem; border-radius:999px; background:#151c2b; color:var(--muted); font-size:.8rem; }
+    .wiki h1, .wiki h2, .wiki h3 { border-bottom:1px solid #1b2436; padding-bottom:.25rem; }
+    .wiki table { width:100%; border-collapse:collapse; }
+    .wiki table th, .wiki table td { border:1px solid #1b2436; padding:.4rem .5rem; text-align:left; }
+    .wiki code { background:#0f1625; padding:.1rem .3rem; border-radius:6px; }
+    .row { display:flex; gap:.5rem; }
+    .spacer { height:.5rem; }
+    .list { max-height:220px; overflow:auto; border:1px solid var(--border); border-radius:10px; padding:.5rem; background:#0c111a; }
+    .right-hdr { display:flex; gap:.75rem; align-items:center; }
+    .inline { display:inline-flex; gap:.5rem; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
