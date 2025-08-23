@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <div class="hdr">
+    <h1>Dictionary → Wiki Page</h1>
+    <span class="pill">Model: llama3.2</span>
+  </div>
+
+  <div class="grid">
+    <!-- Left column: controls + saved list -->
+    <div class="card">
+      <label>Term</label>
+      <input id="term" placeholder="e.g., diode" value="diode"/>
+
+      <div class="row" style="margin-top:.5rem;">
+        <div style="flex:1">
+          <label>Language</label>
+          <select id="lang">
+            <option value="en" selected>English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label>Reading level</label>
+          <select id="level">
+            <option value="general" selected>General</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="margin-top:.5rem;">Sections</label>
+      <div class="checkboxes small">
+        <label><input type="checkbox" id="pronunciation" checked>Pronunciation</label>
+        <label><input type="checkbox" id="pos" checked>Part of Speech</label>
+        <label><input type="checkbox" id="defs" checked>Definitions</label>
+        <label><input type="checkbox" id="etym" checked>Etymology</label>
+        <label><input type="checkbox" id="syn" checked>Synonyms/Antonyms</label>
+        <label><input type="checkbox" id="usage" checked>Usage Notes</label>
+        <label><input type="checkbox" id="examples" checked>Examples</label>
+        <label><input type="checkbox" id="translations">Translations</label>
+        <label><input type="checkbox" id="related" checked>Related/See Also</label>
+      </div>
+
+      <div class="spacer"></div>
+
+      <label class="small inline">
+        <input type="checkbox" id="use_cache" checked> Use cache if available
+      </label>
+      <label class="small inline">
+        <input type="checkbox" id="auto_save" checked> Auto-save generated article
+      </label>
+      <label class="small inline">
+        <input type="checkbox" id="force_new"> Force fresh generation
+      </label>
+
+      <div class="btn-row" style="margin-top:.6rem;">
+        <button id="btn-generate">Generate</button>
+        <span id="status" class="muted small"></span>
+      </div>
+
+      <p class="muted small" style="margin-top:.5rem;">
+        Strict mode is enforced: the model outputs <em>only</em> the Markdown article.
+      </p>
+
+      <div class="spacer"></div>
+      <h3 style="margin:.5rem 0;">Saved articles</h3>
+      <input id="saved-search" placeholder="Search saved terms…"/>
+      <div id="saved-list" class="list muted small">(loading…)</div>
+    </div>
+
+    <!-- Right column: preview -->
+    <div class="card">
+      <div class="right-hdr">
+        <h3 style="margin:0">Preview</h3>
+        <span id="bytes" class="muted small">0 chars</span>
+        <button id="btn-copy" title="Copy Markdown">Copy</button>
+        <button id="btn-download" title="Download .md">Download</button>
+      </div>
+      <div id="preview" class="preview wiki"></div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const preview = document.getElementById("preview");
+    const statusEl = document.getElementById("status");
+    const bytesEl = document.getElementById("bytes");
+    const savedList = document.getElementById("saved-list");
+    const savedSearch = document.getElementById("saved-search");
+    const btnCopy = document.getElementById("btn-copy");
+    const btnDownload = document.getElementById("btn-download");
+
+    // Marked config
+    if (window.marked) {
+      marked.setOptions({ gfm: true, breaks: false });
+    }
+
+    let buffer = "";
+
+    function renderMarkdown(md){
+      preview.innerHTML = (window.marked ? marked.parse(md || "") : (md || ""));
+      bytesEl.textContent = (md || "").length.toLocaleString() + " chars";
+    }
+
+    function getFlag(id, def){ const el = document.getElementById(id); return el ? !!el.checked : def; }
+
+    function payload() {
+      return {
+        term: document.getElementById("term").value.trim(),
+        lang: document.getElementById("lang").value,
+        level: document.getElementById("level").value,
+        extras: {
+          pronunciation: document.getElementById("pronunciation").checked,
+          pos:           document.getElementById("pos").checked,
+          defs:          document.getElementById("defs").checked,
+          etym:          document.getElementById("etym").checked,
+          syn:           document.getElementById("syn").checked,
+          usage:         document.getElementById("usage").checked,
+          examples:      document.getElementById("examples").checked,
+          translations:  document.getElementById("translations").checked,
+          related:       document.getElementById("related").checked,
+        },
+        use_cache: getFlag("use_cache", true),
+        auto_save: getFlag("auto_save", true),
+        force_new: getFlag("force_new", false),
+      };
+    }
+
+    // Generate
+    document.getElementById("btn-generate").onclick = () => {
+      buffer = ""; renderMarkdown(buffer);
+      statusEl.textContent = "Generating…";
+      socket.emit("start_wiki", payload());
+    };
+
+    socket.on("wiki_chunk", ({text}) => {
+      buffer += text;
+      renderMarkdown(buffer);
+    });
+
+    socket.on("wiki_done", ({ok, error, cached}) => {
+      statusEl.textContent = ok
+        ? (cached ? "Loaded from cache." : "Done.")
+        : ("Error: " + (error || "unknown"));
+      if (ok) { refreshSaved(savedSearch.value.trim()); }
+    });
+
+    // Saved list
+    async function refreshSaved(q="") {
+      try {
+        const r = await fetch("/saved" + (q ? ("?q=" + encodeURIComponent(q)) : ""));
+        const j = await r.json();
+        if(!j.ok) { savedList.textContent = "Error loading saved list."; return; }
+        if (!j.items.length) { savedList.textContent = "(no saved entries)"; return; }
+        savedList.innerHTML = j.items.map(it =>
+          `<div class="small">
+             <a href="#" data-id="${it.id}" class="load-saved">${escapeHtml(it.term)}</a>
+             <span class="muted"> [${it.lang}/${it.level}] · ${escapeHtml(it.sections_key||"-")} </span>
+           </div>`
+        ).join("");
+        savedList.querySelectorAll(".load-saved").forEach(a => {
+          a.onclick = async (e) => {
+            e.preventDefault();
+            const id = a.getAttribute("data-id");
+            const r2 = await fetch("/saved/"+id);
+            const j2 = await r2.json();
+            if(j2.ok){
+              buffer = j2.item.content_md || "";
+              renderMarkdown(buffer);
+              statusEl.textContent = "Loaded saved article.";
+            }
+          };
+        });
+      } catch {
+        savedList.textContent = "Error loading saved list.";
+      }
+    }
+
+    function escapeHtml(s){
+      return (s || "").replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+    }
+
+    // Search debounce
+    let t;
+    savedSearch.addEventListener("input", () => {
+      clearTimeout(t);
+      t = setTimeout(()=> refreshSaved(savedSearch.value.trim()), 250);
+    });
+
+    // Copy / Download helpers
+    btnCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(buffer || "");
+        statusEl.textContent = "Copied markdown to clipboard.";
+      } catch { statusEl.textContent = "Copy failed."; }
+    };
+
+    btnDownload.onclick = () => {
+      const term = (document.getElementById("term").value.trim() || "article").replace(/\s+/g,"_");
+      const blob = new Blob([buffer || ""], {type: "text/markdown;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${term}.md`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    // Init
+    document.addEventListener("DOMContentLoaded", () => {
+      renderMarkdown("");
+      refreshSaved();
+    });
+  </script>
+
+{% endblock %}
