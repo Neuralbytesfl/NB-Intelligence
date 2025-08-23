@@ -1,4 +1,4 @@
-# 📚 Dictionary → Wiki Page (Flask + llama3.2)
+# 📚 Dictionary → Wiki Page (Flask + gpt-oss)
 
 Generate clean, wiki-style Markdown pages for dictionary terms using a local or OpenAI-compatible LLM (default: **gpt-oss**).  
 Features live streaming to the browser, strict “Markdown-only” output, and **auto-save** to SQLite so you don’t regenerate the same term twice.
